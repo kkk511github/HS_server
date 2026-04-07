@@ -73,11 +73,35 @@ This starts MySQL, Redis, etcd, Kafka, MinIO (and optional monitoring). The data
 docker compose -f docker-compose-env.yaml up -d
 ```
 
+If your environment only has Compose v1, use:
+
+```bash
+docker-compose -f docker-compose-env.yaml up -d
+```
+
 ### 3. Start application
 
 ```bash
 docker compose up -d
 ```
+
+If your environment only has Compose v1, use:
+
+```bash
+docker-compose up -d
+```
+
+---
+
+## Client connection checklist
+
+By default, Teamgram client forks point to Teamgram test servers. Before login testing with your own backend, you must patch client datacenter addresses to your server public IP and port `10443`, then rebuild and reinstall the client.
+
+- Android: `clients/teamgram-android.md`
+- iOS: `clients/teamgram-ios.md`
+- Desktop: `clients/teamgram-tdesktop.md`
+
+If mobile cannot log in, check backend logs first. If gateway log `conn count` stays `0`, requests are not reaching your server (usually wrong client IP/port, stale app build, or cloud security-group rules).
 
 ---
 

@@ -82,11 +82,35 @@ cd teamgram-server
 docker compose -f docker-compose-env.yaml up -d
 ```
 
+如果你的环境只有 Compose v1，请使用：
+
+```bash
+docker-compose -f docker-compose-env.yaml up -d
+```
+
 ### 3. 启动应用
 
 ```bash
 docker compose up -d
 ```
+
+如果你的环境只有 Compose v1，请使用：
+
+```bash
+docker-compose up -d
+```
+
+---
+
+## 客户端连接检查清单
+
+Teamgram 各客户端分叉默认连接 Teamgram 测试服务器。要连接你自己的后端，必须先把客户端内置的 DC 地址改为你的公网 IP 和端口 `10443`，然后重新编译并安装客户端。
+
+- Android: `clients/teamgram-android.md`
+- iOS: `clients/teamgram-ios.md`
+- Desktop: `clients/teamgram-tdesktop.md`
+
+若手机无法登录，优先看后端日志。若网关日志里 `conn count` 持续为 `0`，说明请求没有到达服务器（常见原因是客户端 IP/端口未改对、安装了旧包、或云安全组未放行）。
 
 ---
 
