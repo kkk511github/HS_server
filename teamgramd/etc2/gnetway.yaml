@@ -19,7 +19,7 @@ Telemetry:
   Name: interface.gateway
   Endpoint: http://jaeger:14268/api/traces
   Sampler: 1.0
-  Batcher: jaeger
+  Batcher: zipkin
   
 RSAKey:
   - KeyFile: "./server_pkcs1.key"

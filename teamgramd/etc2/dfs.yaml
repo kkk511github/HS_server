@@ -20,7 +20,7 @@ Telemetry:
   Name: service.dfs
   Endpoint: http://jaeger:14268/api/traces
   Sampler: 1.0
-  Batcher: jaeger
+  Batcher: zipkin
   
 MiniHttp:
   Name: service.dfs.minihttp

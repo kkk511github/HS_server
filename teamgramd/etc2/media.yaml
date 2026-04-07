@@ -20,7 +20,7 @@ Telemetry:
   Name: service.media
   Endpoint: http://jaeger:14268/api/traces
   Sampler: 1.0
-  Batcher: jaeger
+  Batcher: zipkin
   
 Mysql:
   DSN: teamgram:teamgram@tcp(mysql:3306)/teamgram?charset=utf8mb4&parseTime=true

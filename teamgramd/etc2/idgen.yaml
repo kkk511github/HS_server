@@ -19,7 +19,7 @@ Telemetry:
   Name: service.idgen
   Endpoint: http://jaeger:14268/api/traces
   Sampler: 1.0
-  Batcher: jaeger
+  Batcher: zipkin
   
 NodeId: 1
 
