@@ -20,6 +20,7 @@ type ChatsDO struct {
 	About                  string `db:"about" json:"about"`
 	PhotoId                int64  `db:"photo_id" json:"photo_id"`
 	DefaultBannedRights    int64  `db:"default_banned_rights" json:"default_banned_rights"`
+	DisableSocialActions   bool   `db:"disable_social_actions" json:"disable_social_actions"`
 	MigratedToId           int64  `db:"migrated_to_id" json:"migrated_to_id"`
 	MigratedToAccessHash   int64  `db:"migrated_to_access_hash" json:"migrated_to_access_hash"`
 	AvailableReactionsType int32  `db:"available_reactions_type" json:"available_reactions_type"`

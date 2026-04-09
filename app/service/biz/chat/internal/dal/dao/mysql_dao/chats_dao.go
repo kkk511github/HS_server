@@ -33,13 +33,13 @@ func NewChatsDAO(db *sqlx.DB) *ChatsDAO {
 }
 
 // Insert
-// insert into chats(creator_user_id, access_hash, random_id, participant_count, title, about, default_banned_rights, `date`) values (:creator_user_id, :access_hash, :random_id, :participant_count, :title, :about, :default_banned_rights, :date)
+// insert into chats(creator_user_id, access_hash, random_id, participant_count, title, about, default_banned_rights, disable_social_actions, `date`) values (:creator_user_id, :access_hash, :random_id, :participant_count, :title, :about, :default_banned_rights, :disable_social_actions, :date)
 func (dao *ChatsDAO) Insert(ctx context.Context, do *dataobject.ChatsDO) (lastInsertId, rowsAffected int64, err error) {
 	var (
 		query string
 		r     sql.Result
 	)
-	query = "insert into chats(creator_user_id, access_hash, random_id, participant_count, title, about, default_banned_rights, `date`) values (:creator_user_id, :access_hash, :random_id, :participant_count, :title, :about, :default_banned_rights, :date)"
+	query = "insert into chats(creator_user_id, access_hash, random_id, participant_count, title, about, default_banned_rights, disable_social_actions, `date`) values (:creator_user_id, :access_hash, :random_id, :participant_count, :title, :about, :default_banned_rights, :disable_social_actions, :date)"
 
 	r, err = dao.db.NamedExec(ctx, query, do)
 	if err != nil {
@@ -61,13 +61,13 @@ func (dao *ChatsDAO) Insert(ctx context.Context, do *dataobject.ChatsDO) (lastIn
 }
 
 // InsertTx
-// insert into chats(creator_user_id, access_hash, random_id, participant_count, title, about, default_banned_rights, `date`) values (:creator_user_id, :access_hash, :random_id, :participant_count, :title, :about, :default_banned_rights, :date)
+// insert into chats(creator_user_id, access_hash, random_id, participant_count, title, about, default_banned_rights, disable_social_actions, `date`) values (:creator_user_id, :access_hash, :random_id, :participant_count, :title, :about, :default_banned_rights, :disable_social_actions, :date)
 func (dao *ChatsDAO) InsertTx(tx *sqlx.Tx, do *dataobject.ChatsDO) (lastInsertId, rowsAffected int64, err error) {
 	var (
 		query string
 		r     sql.Result
 	)
-	query = "insert into chats(creator_user_id, access_hash, random_id, participant_count, title, about, default_banned_rights, `date`) values (:creator_user_id, :access_hash, :random_id, :participant_count, :title, :about, :default_banned_rights, :date)"
+	query = "insert into chats(creator_user_id, access_hash, random_id, participant_count, title, about, default_banned_rights, disable_social_actions, `date`) values (:creator_user_id, :access_hash, :random_id, :participant_count, :title, :about, :default_banned_rights, :disable_social_actions, :date)"
 
 	r, err = tx.NamedExec(query, do)
 	if err != nil {
@@ -89,13 +89,13 @@ func (dao *ChatsDAO) InsertTx(tx *sqlx.Tx, do *dataobject.ChatsDO) (lastInsertId
 }
 
 // Select
-// select id, creator_user_id, access_hash, participant_count, title, about, photo_id, default_banned_rights, migrated_to_id, migrated_to_access_hash, noforwards, available_reactions_type, available_reactions, deactivated, ttl_period, version, `date` from chats where id = :id
+// select id, creator_user_id, access_hash, participant_count, title, about, photo_id, default_banned_rights, disable_social_actions, migrated_to_id, migrated_to_access_hash, noforwards, available_reactions_type, available_reactions, deactivated, ttl_period, version, `date` from chats where id = :id
 func (dao *ChatsDAO) Select(ctx context.Context, id int64) (rValue *dataobject.ChatsDO, err error) {
 	var (
 		query string
 		do    = &dataobject.ChatsDO{}
 	)
-	query = "select id, creator_user_id, access_hash, participant_count, title, about, photo_id, default_banned_rights, migrated_to_id, migrated_to_access_hash, noforwards, available_reactions_type, available_reactions, deactivated, ttl_period, version, `date` from chats where id = ?"
+	query = "select id, creator_user_id, access_hash, participant_count, title, about, photo_id, default_banned_rights, disable_social_actions, migrated_to_id, migrated_to_access_hash, noforwards, available_reactions_type, available_reactions, deactivated, ttl_period, version, `date` from chats where id = ?"
 
 	err = dao.db.QueryRowPartial(ctx, do, query, id)
 
@@ -115,13 +115,13 @@ func (dao *ChatsDAO) Select(ctx context.Context, id int64) (rValue *dataobject.C
 }
 
 // SelectLastCreator
-// select id, creator_user_id, access_hash, participant_count, title, about, photo_id, default_banned_rights, migrated_to_id, migrated_to_access_hash, noforwards, available_reactions_type, available_reactions, deactivated, ttl_period, version, `date` from chats where creator_user_id = :creator_user_id order by `date` desc limit 1
+// select id, creator_user_id, access_hash, participant_count, title, about, photo_id, default_banned_rights, disable_social_actions, migrated_to_id, migrated_to_access_hash, noforwards, available_reactions_type, available_reactions, deactivated, ttl_period, version, `date` from chats where creator_user_id = :creator_user_id order by `date` desc limit 1
 func (dao *ChatsDAO) SelectLastCreator(ctx context.Context, creatorUserId int64) (rValue *dataobject.ChatsDO, err error) {
 	var (
 		query string
 		do    = &dataobject.ChatsDO{}
 	)
-	query = "select id, creator_user_id, access_hash, participant_count, title, about, photo_id, default_banned_rights, migrated_to_id, migrated_to_access_hash, noforwards, available_reactions_type, available_reactions, deactivated, ttl_period, version, `date` from chats where creator_user_id = ? order by `date` desc limit 1"
+	query = "select id, creator_user_id, access_hash, participant_count, title, about, photo_id, default_banned_rights, disable_social_actions, migrated_to_id, migrated_to_access_hash, noforwards, available_reactions_type, available_reactions, deactivated, ttl_period, version, `date` from chats where creator_user_id = ? order by `date` desc limit 1"
 
 	err = dao.db.QueryRowPartial(ctx, do, query, creatorUserId)
 
@@ -237,7 +237,7 @@ func (dao *ChatsDAO) UpdateAboutTx(tx *sqlx.Tx, about string, id int64) (rowsAff
 }
 
 // SelectByIdList
-// select id, creator_user_id, access_hash, participant_count, title, about, photo_id, default_banned_rights, migrated_to_id, migrated_to_access_hash, noforwards, available_reactions_type, available_reactions, deactivated, ttl_period, version, `date` from chats where id in (:idList)
+// select id, creator_user_id, access_hash, participant_count, title, about, photo_id, default_banned_rights, disable_social_actions, migrated_to_id, migrated_to_access_hash, noforwards, available_reactions_type, available_reactions, deactivated, ttl_period, version, `date` from chats where id in (:idList)
 func (dao *ChatsDAO) SelectByIdList(ctx context.Context, idList []int32) (rList []dataobject.ChatsDO, err error) {
 	if len(idList) == 0 {
 		rList = []dataobject.ChatsDO{}
@@ -248,7 +248,7 @@ func (dao *ChatsDAO) SelectByIdList(ctx context.Context, idList []int32) (rList 
 		query  string
 		values []dataobject.ChatsDO
 	)
-	query = fmt.Sprintf("select id, creator_user_id, access_hash, participant_count, title, about, photo_id, default_banned_rights, migrated_to_id, migrated_to_access_hash, noforwards, available_reactions_type, available_reactions, deactivated, ttl_period, version, `date` from chats where id in (%s)", sqlx.InInt32List(idList))
+	query = fmt.Sprintf("select id, creator_user_id, access_hash, participant_count, title, about, photo_id, default_banned_rights, disable_social_actions, migrated_to_id, migrated_to_access_hash, noforwards, available_reactions_type, available_reactions, deactivated, ttl_period, version, `date` from chats where id in (%s)", sqlx.InInt32List(idList))
 
 	err = dao.db.QueryRowsPartial(ctx, &values, query)
 
@@ -263,7 +263,7 @@ func (dao *ChatsDAO) SelectByIdList(ctx context.Context, idList []int32) (rList 
 }
 
 // SelectByIdListWithCB
-// select id, creator_user_id, access_hash, participant_count, title, about, photo_id, default_banned_rights, migrated_to_id, migrated_to_access_hash, noforwards, available_reactions_type, available_reactions, deactivated, ttl_period, version, `date` from chats where id in (:idList)
+// select id, creator_user_id, access_hash, participant_count, title, about, photo_id, default_banned_rights, disable_social_actions, migrated_to_id, migrated_to_access_hash, noforwards, available_reactions_type, available_reactions, deactivated, ttl_period, version, `date` from chats where id in (:idList)
 func (dao *ChatsDAO) SelectByIdListWithCB(ctx context.Context, idList []int32, cb func(sz, i int, v *dataobject.ChatsDO)) (rList []dataobject.ChatsDO, err error) {
 	if len(idList) == 0 {
 		rList = []dataobject.ChatsDO{}
@@ -274,7 +274,7 @@ func (dao *ChatsDAO) SelectByIdListWithCB(ctx context.Context, idList []int32, c
 		query  string
 		values []dataobject.ChatsDO
 	)
-	query = fmt.Sprintf("select id, creator_user_id, access_hash, participant_count, title, about, photo_id, default_banned_rights, migrated_to_id, migrated_to_access_hash, noforwards, available_reactions_type, available_reactions, deactivated, ttl_period, version, `date` from chats where id in (%s)", sqlx.InInt32List(idList))
+	query = fmt.Sprintf("select id, creator_user_id, access_hash, participant_count, title, about, photo_id, default_banned_rights, disable_social_actions, migrated_to_id, migrated_to_access_hash, noforwards, available_reactions_type, available_reactions, deactivated, ttl_period, version, `date` from chats where id in (%s)", sqlx.InInt32List(idList))
 
 	err = dao.db.QueryRowsPartial(ctx, &values, query)
 
@@ -434,6 +434,54 @@ func (dao *ChatsDAO) UpdateDefaultBannedRightsTx(tx *sqlx.Tx, defaultBannedRight
 	rowsAffected, err = rResult.RowsAffected()
 	if err != nil {
 		logx.WithContext(tx.Context()).Errorf("rowsAffected in UpdateDefaultBannedRights(_), error: %v", err)
+	}
+
+	return
+}
+
+// UpdateDisableSocialActions
+// update chats set disable_social_actions = :disable_social_actions, version = version + 1 where id = :id
+func (dao *ChatsDAO) UpdateDisableSocialActions(ctx context.Context, disableSocialActions bool, id int64) (rowsAffected int64, err error) {
+	var (
+		query   string
+		rResult sql.Result
+	)
+	query = "update chats set disable_social_actions = ?, version = version + 1 where id = ?"
+
+	rResult, err = dao.db.Exec(ctx, query, disableSocialActions, id)
+
+	if err != nil {
+		logx.WithContext(ctx).Errorf("exec in UpdateDisableSocialActions(_), error: %v", err)
+		return
+	}
+
+	rowsAffected, err = rResult.RowsAffected()
+	if err != nil {
+		logx.WithContext(ctx).Errorf("rowsAffected in UpdateDisableSocialActions(_), error: %v", err)
+	}
+
+	return
+}
+
+// UpdateDisableSocialActionsTx
+// update chats set disable_social_actions = :disable_social_actions, version = version + 1 where id = :id
+func (dao *ChatsDAO) UpdateDisableSocialActionsTx(tx *sqlx.Tx, disableSocialActions bool, id int64) (rowsAffected int64, err error) {
+	var (
+		query   string
+		rResult sql.Result
+	)
+	query = "update chats set disable_social_actions = ?, version = version + 1 where id = ?"
+
+	rResult, err = tx.Exec(query, disableSocialActions, id)
+
+	if err != nil {
+		logx.WithContext(tx.Context()).Errorf("exec in UpdateDisableSocialActions(_), error: %v", err)
+		return
+	}
+
+	rowsAffected, err = rResult.RowsAffected()
+	if err != nil {
+		logx.WithContext(tx.Context()).Errorf("rowsAffected in UpdateDisableSocialActions(_), error: %v", err)
 	}
 
 	return

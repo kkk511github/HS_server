@@ -179,6 +179,7 @@ CREATE TABLE `chats` (
   `about` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
   `photo_id` bigint(20) NOT NULL DEFAULT '0',
   `default_banned_rights` bigint(20) NOT NULL DEFAULT '0',
+  `disable_social_actions` tinyint(1) NOT NULL DEFAULT '0',
   `migrated_to_id` bigint(20) NOT NULL DEFAULT '0',
   `migrated_to_access_hash` bigint(20) NOT NULL DEFAULT '0',
   `deactivated` tinyint(1) NOT NULL DEFAULT '0',
