@@ -96,6 +96,14 @@ func (d *Dao) sendMessageToOutbox(ctx context.Context, fromId int64, peer *mtpro
 	tR := sqlx.TxWrapper(ctx, d.DB, func(tx *sqlx.Tx, result *sqlx.StoreResult) {
 		message.Out = true
 		message.Id = outBoxMsgId
+		// Normalize outgoing peer for stable dialog mapping on clients.
+		// Some request/build paths may leave message.PeerId unset or inconsistent.
+		switch peer.PeerType {
+		case mtproto.PEER_USER:
+			message.PeerId = mtproto.MakePeerUser(peer.PeerId)
+		case mtproto.PEER_CHAT:
+			message.PeerId = mtproto.MakePeerChat(peer.PeerId)
+		}
 		// message.Mentioned = model.CheckHasMention(message.Entities, fromId)
 		//if message.Mentioned {
 		//	message.MediaUnread = true
