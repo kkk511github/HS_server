@@ -260,22 +260,20 @@ func (c *MsgCore) editChatOutgoingMessageV2(fromUserId, fromAuthKeyId, peerChatI
 		})
 
 	outBox, err2 := c.svcCtx.Dao.EditChatOutboxMessageV2(c.ctx, fromUserId, peerChatId, editBox, dstMessage)
-	if err != nil {
-		c.Logger.Errorf("msg.editMessage - error: %v", err)
-		return nil, err
+	if err2 != nil {
+		c.Logger.Errorf("msg.editMessage - error: %v", err2)
+		return nil, err2
 	}
 
 	chat.Walk(func(userId int64, participant *mtproto.ImmutableChatParticipant) error {
 		if !participant.IsChatMemberStateNormal() {
 			return nil
 		}
-		if err2 != nil {
-			return nil
-		}
 
+		var e error
 		out := participant.UserId == fromUserId
 		if out {
-			_, err2 = c.svcCtx.Dao.InboxClient.InboxEditMessageToInboxV2(
+			_, e = c.svcCtx.Dao.InboxClient.InboxEditMessageToInboxV2(
 				c.ctx,
 				&inbox.TLInboxEditMessageToInboxV2{
 					UserId:        participant.UserId,
@@ -294,7 +292,7 @@ func (c *MsgCore) editChatOutgoingMessageV2(fromUserId, fromAuthKeyId, peerChatI
 			sUserList.Visit(func(it *mtproto.ImmutableUser) {
 				toUsers = append(toUsers, it.ToUser(participant.UserId))
 			})
-			_, err2 = c.svcCtx.Dao.InboxClient.InboxEditMessageToInboxV2(
+			_, e = c.svcCtx.Dao.InboxClient.InboxEditMessageToInboxV2(
 				c.ctx,
 				&inbox.TLInboxEditMessageToInboxV2{
 					UserId:        participant.UserId,
@@ -309,12 +307,18 @@ func (c *MsgCore) editChatOutgoingMessageV2(fromUserId, fromAuthKeyId, peerChatI
 					Chats:         []*mtproto.Chat{chat.ToUnsafeChat(participant.UserId)},
 				})
 		}
+		if e != nil {
+			c.Logger.Errorf("InboxEditMessageToInboxV2(chat) userId=%d: %v", participant.UserId, e)
+			if err2 == nil {
+				err2 = e
+			}
+		}
 		return nil
 	})
 
 	if err2 != nil {
 		c.Logger.Error(err2.Error())
-		return nil, err
+		return nil, err2
 	}
 
 	return mtproto.MakeReplyUpdates(

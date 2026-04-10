@@ -101,7 +101,7 @@ func (c *InboxCore) InboxSendUserMessageToInboxV2(in *inbox.TLInboxSendUserMessa
 				PtsCount:        inBox.PtsCount,
 			}).To_Update()
 
-			_, err := c.svcCtx.Dao.SyncClient.SyncUpdatesNotMe(c.ctx, &sync.TLSyncUpdatesNotMe{
+			_, syncErr := c.svcCtx.Dao.SyncClient.SyncUpdatesNotMe(c.ctx, &sync.TLSyncUpdatesNotMe{
 				UserId:        inBox.UserId,
 				PermAuthKeyId: in.FromAuthKeyId,
 				Updates: mtproto.MakeUpdatesByUpdatesUsersChats(
@@ -109,8 +109,9 @@ func (c *InboxCore) InboxSendUserMessageToInboxV2(in *inbox.TLInboxSendUserMessa
 					in.Chats,
 					updateNewMessage),
 			})
-			if err != nil {
-				c.Logger.Errorf("inbox.sendUserMessageToInboxV2 - SyncUpdatesNotMe error: %v", err)
+			if syncErr != nil {
+				c.Logger.Errorf("inbox.sendUserMessageToInboxV2 - SyncUpdatesNotMe error: %v", syncErr)
+				return nil, syncErr
 			}
 		}
 
@@ -260,23 +261,26 @@ func (c *InboxCore) InboxSendUserMessageToInboxV2(in *inbox.TLInboxSendUserMessa
 
 			c.persistPtsUpdate(c.ctx, inBox.UserId, updateNewMessage)
 
+			var syncPushErr error
 			if isBot {
 				if c.svcCtx.Dao.BotSyncClient != nil {
-					_, err = c.svcCtx.Dao.BotSyncClient.SyncPushBotUpdates(c.ctx, &sync.TLSyncPushBotUpdates{
+					_, syncPushErr = c.svcCtx.Dao.BotSyncClient.SyncPushBotUpdates(c.ctx, &sync.TLSyncPushBotUpdates{
 						UserId:  inBox.UserId,
 						Updates: pushUpdates,
 					})
 				} else {
-					// TODO: log
+					c.Logger.Errorf("inbox.sendUserMessageToInboxV2 - BotSyncClient nil, userId=%d", inBox.UserId)
 				}
 			} else {
-				_, err = c.svcCtx.Dao.SyncClient.SyncPushUpdates(c.ctx, &sync.TLSyncPushUpdates{
+				_, syncPushErr = c.svcCtx.Dao.SyncClient.SyncPushUpdates(c.ctx, &sync.TLSyncPushUpdates{
 					UserId:  inBox.UserId,
 					Updates: pushUpdates,
 				})
 			}
-			if err != nil {
-				c.Logger.Errorf("inbox.sendUserMessageToInboxV2 - error: %v", err)
+			if syncPushErr != nil {
+				c.Logger.Errorf("inbox.sendUserMessageToInboxV2 - push updates error (userId=%d fromId=%d peerType=%d peerId=%d): %v",
+					inBox.UserId, in.FromId, in.PeerType, in.PeerId, syncPushErr)
+				return nil, syncPushErr
 			}
 		}
 	}

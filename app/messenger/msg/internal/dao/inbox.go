@@ -58,14 +58,16 @@ func (d *Dao) makeMessageInBox(fromId int64, peer *mtproto.PeerUtil, toUserId in
 func (d *Dao) sendMessageToInbox(ctx context.Context, fromId int64, peer *mtproto.PeerUtil, toUserId int64, dialogMessageId, clientRandomId int64, message2 *mtproto.Message) (*mtproto.MessageBox, error) {
 	var (
 		inBoxMsgId = d.IDGenClient2.NextMessageBoxId(ctx, toUserId)
-		dialogId   = mtproto.MakeDialogId(fromId, peer.PeerType, peer.PeerId)
-		date       = time.Now().Unix()
-		message    = proto.Clone(message2).(*mtproto.Message)
+		dialogId      = mtproto.MakeDialogId(fromId, peer.PeerType, peer.PeerId)
+		messagePeerId = peer.PeerId
+		date          = time.Now().Unix()
+		message       = proto.Clone(message2).(*mtproto.Message)
 
 		dialogDO *dataobject.DialogsDO
 	)
 
 	if peer.PeerType == mtproto.PEER_USER {
+		messagePeerId = fromId
 		if dialogMessageId == 0 {
 			dialogMessageId = d.IDGenClient2.NextId(ctx)
 		}
@@ -134,7 +136,7 @@ func (d *Dao) sendMessageToInbox(ctx context.Context, fromId int64, peer *mtprot
 		UserId:            toUserId,
 		SenderUserId:      fromId,
 		PeerType:          peer.PeerType,
-		PeerId:            peer.PeerId,
+		PeerId:            messagePeerId,
 		MessageId:         inBoxMsgId,
 		DialogId1:         dialogId.A,
 		DialogId2:         dialogId.B,
@@ -160,7 +162,7 @@ func (d *Dao) sendMessageToInbox(ctx context.Context, fromId int64, peer *mtprot
 			DialogId2:         inBox.DialogId2,
 			SenderUserId:      fromId,
 			PeerType:          peer.PeerType,
-			PeerId:            inBox.PeerId,
+			PeerId:            messagePeerId,
 			RandomId:          inBox.RandomId,
 			DialogMessageId:   inBox.DialogMessageId,
 			MessageData:       string(mData),
@@ -233,7 +235,7 @@ func (d *Dao) sendMessageToInbox(ctx context.Context, fromId int64, peer *mtprot
 					_, _, _ = d.HashTagsDAO.InsertOrUpdateTx(tx, &dataobject.HashTagsDO{
 						UserId:           inBox.UserId,
 						PeerType:         peer.PeerType,
-						PeerId:           peer.PeerId,
+						PeerId:           messagePeerId,
 						HashTag:          entity.GetUrl(),
 						HashTagMessageId: inBox.MessageId,
 					})

@@ -92,6 +92,7 @@ func (c *InboxCore) makeUpdateNewMessageListUpdates(selfUserId int64, boxList ..
 		func(chatIdList []int64) {
 			chats, _ := c.svcCtx.Dao.ChatClient.ChatGetChatListByIdList(c.ctx,
 				&chatpb.TLChatGetChatListByIdList{
+					SelfId: selfUserId,
 					IdList: chatIdList,
 				})
 			rUpdates.PushChat(chats.GetChatListByIdList(selfUserId, chatIdList...)...)
