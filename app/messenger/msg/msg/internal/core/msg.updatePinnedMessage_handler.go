@@ -88,7 +88,7 @@ func (c *MsgCore) MsgUpdatePinnedMessage(in *msg.TLMsgUpdatePinnedMessage) (*mtp
 
 		// pinned
 		c.svcCtx.Dao.MessagesDAO.UpdatePinned(c.ctx, !in.GetUnpin(), in.UserId, in.Id)
-		pinnedPts := c.svcCtx.Dao.IDGenClient2.NextPtsId(c.ctx, in.UserId)
+		pinnedPts := c.svcCtx.Dao.NextPtsId(c.ctx, in.UserId)
 		updatePinnedMessage := mtproto.MakeTLUpdatePinnedMessages(&mtproto.Update{
 			Pinned:    !in.GetUnpin(),
 			Peer_PEER: peer.ToPeer(),

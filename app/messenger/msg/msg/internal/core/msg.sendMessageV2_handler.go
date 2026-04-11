@@ -224,6 +224,8 @@ func (c *MsgCore) sendUserOutgoingMessageV2(fromUserId, fromAuthKeyId, toUserId 
 					if err2 != nil {
 						return err2
 					}
+				} else {
+					c.Logger.Infof("msg.sendUserOutgoingMessageV2: skip recipient inbox, recipient=%d blocked sender=%d", toUserId, fromUserId)
 				}
 			}
 
@@ -345,14 +347,11 @@ func (c *MsgCore) sendChatOutgoingMessageV2(fromUserId, fromAuthKeyId, peerChatI
 			box, err2 := c.svcCtx.Dao.SendChatMessageV2(ctx, fromUserId, peerChatId, outBox)
 			if err2 != nil {
 				c.Logger.Error(err2.Error())
-				return err
+				return err2
 			}
 
 			chat.Walk(func(userId int64, participant *mtproto.ImmutableChatParticipant) error {
 				if !participant.IsChatMemberStateNormal() && !participant.IsChatMemberStateMigrated() {
-					return nil
-				}
-				if err2 != nil {
 					return nil
 				}
 
@@ -360,7 +359,7 @@ func (c *MsgCore) sendChatOutgoingMessageV2(fromUserId, fromAuthKeyId, peerChatI
 				sUserList.Visit(func(it *mtproto.ImmutableUser) {
 					toUsers = append(toUsers, it.ToUser(participant.UserId))
 				})
-				_, err2 = c.svcCtx.Dao.InboxClient.InboxSendUserMessageToInboxV2(ctx, &inbox.TLInboxSendUserMessageToInboxV2{
+				_, e := c.svcCtx.Dao.InboxClient.InboxSendUserMessageToInboxV2(ctx, &inbox.TLInboxSendUserMessageToInboxV2{
 					UserId:        participant.UserId,
 					Out:           participant.UserId == fromUserId,
 					FromId:        fromUserId,
@@ -371,12 +370,18 @@ func (c *MsgCore) sendChatOutgoingMessageV2(fromUserId, fromAuthKeyId, peerChatI
 					Users:         toUsers,
 					Chats:         []*mtproto.Chat{chat.ToUnsafeChat(participant.UserId)},
 				})
+				if e != nil {
+					c.Logger.Errorf("InboxSendUserMessageToInboxV2(chat) userId=%d: %v", participant.UserId, e)
+					if err2 == nil {
+						err2 = e
+					}
+				}
 				return nil
 			})
 
 			if err2 != nil {
 				c.Logger.Error(err2.Error())
-				return err
+				return err2
 			}
 
 			*v.(**mtproto.Updates) = mtproto.MakeReplyUpdates(
@@ -540,6 +545,8 @@ func (c *MsgCore) sendUserOutgoingMessageList(fromUserId, fromAuthKeyId, toUserI
 					if err2 != nil {
 						return err2
 					}
+				} else {
+					c.Logger.Infof("msg.sendUserOutgoingMessageList: skip recipient inbox, recipient=%d blocked sender=%d", toUserId, fromUserId)
 				}
 			}
 
@@ -665,11 +672,12 @@ func (c *MsgCore) sendChatOutgoingMessageList(fromUserId, fromAuthKeyId, peerCha
 				updateList []*mtproto.Update
 			)
 
+			var err2 error
 			for _, outBox := range outBoxList {
-				box, err2 := c.svcCtx.Dao.SendChatMessageV2(ctx, fromUserId, peerChatId, outBox)
-				if err2 != nil {
-					c.Logger.Error(err2.Error())
-					return err
+				box, e := c.svcCtx.Dao.SendChatMessageV2(ctx, fromUserId, peerChatId, outBox)
+				if e != nil {
+					c.Logger.Error(e.Error())
+					return e
 				}
 				boxList = append(boxList, box)
 				updateList = append(updateList, mtproto.MakeTLUpdateNewMessage(&mtproto.Update{
@@ -680,15 +688,8 @@ func (c *MsgCore) sendChatOutgoingMessageList(fromUserId, fromAuthKeyId, peerCha
 				}).To_Update())
 			}
 
-			var (
-				err2 error
-			)
-
 			chat.Walk(func(userId int64, participant *mtproto.ImmutableChatParticipant) error {
 				if !participant.IsChatMemberStateNormal() {
-					return nil
-				}
-				if err2 != nil {
 					return nil
 				}
 
@@ -696,7 +697,7 @@ func (c *MsgCore) sendChatOutgoingMessageList(fromUserId, fromAuthKeyId, peerCha
 				sUserList.Visit(func(it *mtproto.ImmutableUser) {
 					toUsers = append(toUsers, it.ToUser(participant.UserId))
 				})
-				_, err2 = c.svcCtx.Dao.InboxClient.InboxSendUserMessageToInboxV2(ctx, &inbox.TLInboxSendUserMessageToInboxV2{
+				_, e := c.svcCtx.Dao.InboxClient.InboxSendUserMessageToInboxV2(ctx, &inbox.TLInboxSendUserMessageToInboxV2{
 					UserId:        participant.UserId,
 					Out:           participant.UserId == fromUserId,
 					FromId:        fromUserId,
@@ -707,12 +708,18 @@ func (c *MsgCore) sendChatOutgoingMessageList(fromUserId, fromAuthKeyId, peerCha
 					Users:         toUsers,
 					Chats:         []*mtproto.Chat{chat.ToUnsafeChat(participant.UserId)},
 				})
+				if e != nil {
+					c.Logger.Errorf("InboxSendUserMessageToInboxV2(chat multi) userId=%d: %v", participant.UserId, e)
+					if err2 == nil {
+						err2 = e
+					}
+				}
 				return nil
 			})
 
 			if err2 != nil {
 				c.Logger.Error(err2.Error())
-				return err
+				return err2
 			}
 
 			*v.(**mtproto.Updates) = mtproto.MakeReplyUpdates(
@@ -868,6 +875,8 @@ func (c *MsgCore) sendUserOutgoingMessageV3(ctx context.Context, fromUserId, fro
 					if err2 != nil {
 						return err2
 					}
+				} else {
+					c.Logger.Infof("msg.sendUserOutgoingMessageV3: skip recipient inbox, recipient=%d blocked sender=%d", toUserId, fromUserId)
 				}
 			}
 

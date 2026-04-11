@@ -3,15 +3,15 @@
     <operation name="Insert">
         <sql>
             INSERT INTO chats
-                (creator_user_id, access_hash, random_id, participant_count, title, about, default_banned_rights, date)
+                (creator_user_id, access_hash, random_id, participant_count, title, about, default_banned_rights, disable_social_actions, date)
             VALUES
-                (:creator_user_id, :access_hash, :random_id, :participant_count, :title, :about, :default_banned_rights, :date)
+                (:creator_user_id, :access_hash, :random_id, :participant_count, :title, :about, :default_banned_rights, :disable_social_actions, :date)
         </sql>
     </operation>
     <operation name="Select">
         <sql>
             SELECT
-                id, creator_user_id, access_hash, participant_count, title, about, photo_id, default_banned_rights, migrated_to_id, migrated_to_access_hash, noforwards, available_reactions_type, available_reactions, deactivated, ttl_period, version, date
+                id, creator_user_id, access_hash, participant_count, title, about, photo_id, default_banned_rights, disable_social_actions, migrated_to_id, migrated_to_access_hash, noforwards, available_reactions_type, available_reactions, deactivated, ttl_period, version, date
             FROM
                 chats
             WHERE
@@ -22,7 +22,7 @@
     <operation name="SelectLastCreator">
         <sql>
             SELECT
-                id, creator_user_id, access_hash, participant_count, title, about, photo_id, default_banned_rights, migrated_to_id, migrated_to_access_hash, noforwards, available_reactions_type, available_reactions, deactivated, ttl_period, version, date
+                id, creator_user_id, access_hash, participant_count, title, about, photo_id, default_banned_rights, disable_social_actions, migrated_to_id, migrated_to_access_hash, noforwards, available_reactions_type, available_reactions, deactivated, ttl_period, version, date
             FROM
                 chats
             WHERE
@@ -58,7 +58,7 @@
         </params>
         <sql>
             SELECT
-                id, creator_user_id, access_hash, participant_count, title, about, photo_id, default_banned_rights, migrated_to_id, migrated_to_access_hash, noforwards, available_reactions_type, available_reactions, deactivated, ttl_period, version, date
+                id, creator_user_id, access_hash, participant_count, title, about, photo_id, default_banned_rights, disable_social_actions, migrated_to_id, migrated_to_access_hash, noforwards, available_reactions_type, available_reactions, deactivated, ttl_period, version, date
             FROM
                 chats
             WHERE
@@ -93,6 +93,17 @@
                 chats
             SET
                 default_banned_rights=:default_banned_rights, version=version+1
+            WHERE
+                id=:id
+        </sql>
+    </operation>
+
+    <operation name="UpdateDisableSocialActions">
+        <sql>
+            UPDATE
+                chats
+            SET
+                disable_social_actions=:disable_social_actions, version=version+1
             WHERE
                 id=:id
         </sql>

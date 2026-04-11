@@ -70,7 +70,7 @@ func (c *InboxCore) InboxUpdateHistoryReaded(in *inbox.TLInboxUpdateHistoryReade
 		updateReadHistoryOutbox := mtproto.MakeTLUpdateReadHistoryOutbox(&mtproto.Update{
 			Peer_PEER: mtproto.MakePeerUser(in.FromId),
 			MaxId:     replyId.UserMessageBoxId,
-			Pts_INT32: c.svcCtx.Dao.IDGenClient2.NextPtsId(c.ctx, in.PeerId),
+			Pts_INT32: c.svcCtx.Dao.NextPtsId(c.ctx, in.PeerId),
 			PtsCount:  1,
 		}).To_Update()
 		c.persistPtsUpdate(c.ctx, in.PeerId, updateReadHistoryOutbox)
@@ -123,7 +123,7 @@ func (c *InboxCore) InboxUpdateHistoryReaded(in *inbox.TLInboxUpdateHistoryReade
 					updateReadHistoryOutbox := mtproto.MakeTLUpdateReadHistoryOutbox(&mtproto.Update{
 						Peer_PEER: mtproto.MakePeerChat(in.PeerId),
 						MaxId:     replyId.UserMessageBoxId,
-						Pts_INT32: c.svcCtx.Dao.IDGenClient2.NextPtsId(c.ctx, replyId.UserId),
+						Pts_INT32: c.svcCtx.Dao.NextPtsId(c.ctx, replyId.UserId),
 						PtsCount:  1,
 					}).To_Update()
 					c.persistPtsUpdate(c.ctx, replyId.UserId, updateReadHistoryOutbox)

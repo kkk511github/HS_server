@@ -162,7 +162,9 @@ func New(svcCtx *svc.ServiceContext, conf kafka.KafkaConsumerConf) *kafka.Consum
 				}
 				c.Logger.Debugf("inbox.sendUserMessageToInboxV2 - request: %s", r)
 
-				c.InboxSendUserMessageToInboxV2(r)
+				if _, err := c.InboxSendUserMessageToInboxV2(r); err != nil {
+					c.Logger.Errorf("inbox.sendUserMessageToInboxV2 - handler error: %v", err)
+				}
 			case proto.MessageName((*inbox.TLInboxEditMessageToInboxV2)(nil)):
 				c := core.New(ctx, svcCtx)
 

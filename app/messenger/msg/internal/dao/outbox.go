@@ -31,7 +31,6 @@ import (
 	"github.com/teamgram/teamgram-server/app/messenger/msg/internal/dal/dataobject"
 	"github.com/teamgram/teamgram-server/app/messenger/msg/msg/msg"
 	"github.com/teamgram/teamgram-server/app/service/biz/dialog/dialog"
-	idgen_client "github.com/teamgram/teamgram-server/app/service/idgen/client"
 
 	"github.com/zeromicro/go-zero/core/jsonx"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -64,24 +63,13 @@ func makeMessageBoxByDO(boxDO *dataobject.MessagesDO) *mtproto.MessageBox {
 
 func (d *Dao) sendMessageToOutbox(ctx context.Context, fromId int64, peer *mtproto.PeerUtil, outboxMessage *msg.OutboxMessage) (*mtproto.MessageBox, bool, error) {
 	var (
-		dialogId = mtproto.MakeDialogId(fromId, peer.PeerType, peer.PeerId)
-		err      error
-		message  = outboxMessage.Message
+		dialogId        = mtproto.MakeDialogId(fromId, peer.PeerType, peer.PeerId)
+		err             error
+		message         = outboxMessage.Message
+		dialogMessageId = d.IDGenClient2.NextId(ctx)
+		outBoxMsgId     = d.NextMessageBoxId(ctx, fromId)
+		pts             = d.NextPtsId(ctx, fromId)
 	)
-
-	idList := d.IDGenClient2.GetNextIdList(
-		ctx,
-		idgen_client.MakeIDTypeNextId(),
-		idgen_client.MakeIDTypeNgen(idgen_client.IDTypeMessageBox, fromId),
-		idgen_client.MakeIDTypeNgen(idgen_client.IDTypePts, fromId))
-	if len(idList) != 3 {
-		err = mtproto.ErrInternalServerError
-		return nil, false, err
-	}
-
-	dialogMessageId := idList[0].Id
-	outBoxMsgId := int32(idList[1].Id)
-	pts := int32(idList[2].Id)
 
 	if dialogMessageId == 0 || outBoxMsgId == 0 || pts == 0 {
 		err = mtproto.ErrInternalServerError
@@ -96,6 +84,14 @@ func (d *Dao) sendMessageToOutbox(ctx context.Context, fromId int64, peer *mtpro
 	tR := sqlx.TxWrapper(ctx, d.DB, func(tx *sqlx.Tx, result *sqlx.StoreResult) {
 		message.Out = true
 		message.Id = outBoxMsgId
+		// Normalize outgoing peer for stable dialog mapping on clients.
+		// Some request/build paths may leave message.PeerId unset or inconsistent.
+		switch peer.PeerType {
+		case mtproto.PEER_USER:
+			message.PeerId = mtproto.MakePeerUser(peer.PeerId)
+		case mtproto.PEER_CHAT:
+			message.PeerId = mtproto.MakePeerChat(peer.PeerId)
+		}
 		// message.Mentioned = model.CheckHasMention(message.Entities, fromId)
 		//if message.Mentioned {
 		//	message.MediaUnread = true
@@ -515,7 +511,7 @@ func (d *Dao) editOutboxMessage(ctx context.Context, fromId int64, peerType int3
 		DialogMessageId:   0,
 		MessageFilterType: 0,
 		Message:           message,
-		Pts:               d.IDGenClient2.NextPtsId(ctx, fromId),
+		Pts:               d.NextPtsId(ctx, fromId),
 		PtsCount:          1,
 		Mentioned:         false,
 		MediaUnread:       false,
@@ -694,22 +690,12 @@ func (d *Dao) sendMessageToOutboxV2(ctx context.Context, fromId int64, peer *mtp
 	)
 
 	if out {
-		idList := d.IDGenClient2.GetNextIdList(
-			ctx,
-			idgen_client.MakeIDTypeNextId(),
-			idgen_client.MakeIDTypeNgen(idgen_client.IDTypeMessageBox, fromId),
-			idgen_client.MakeIDTypeNgen(idgen_client.IDTypePts, fromId))
-		if len(idList) != 3 {
-			err = mtproto.ErrInternalServerError
-			return nil, err
-		}
-
-		dialogMessageId = idList[0].Id
-		outBoxMsgId = int32(idList[1].Id)
-		pts = int32(idList[2].Id)
+		dialogMessageId = d.IDGenClient2.NextId(ctx)
+		outBoxMsgId = d.NextMessageBoxId(ctx, fromId)
+		pts = d.NextPtsId(ctx, fromId)
 
 		if dialogMessageId == 0 || outBoxMsgId == 0 || pts == 0 {
-			logx.WithContext(ctx).Errorf("GetNextIdList error: %v", idList)
+			logx.WithContext(ctx).Errorf("sendMessageToOutboxV2 - allocate id failed, dialog_message_id: %d, message_box_id: %d, pts: %d", dialogMessageId, outBoxMsgId, pts)
 			err = mtproto.ErrInternalServerError
 			return nil, err
 		}
@@ -781,23 +767,11 @@ func (d *Dao) sendMessageToOutboxV3(ctx context.Context, fromId int64, peer *mtp
 	)
 
 	if out {
-		idList := d.IDGenClient2.GetNextIdList(
-			ctx,
-			idgen_client.MakeIDTypeNextId(),
-			idgen_client.MakeIDTypeNgen(idgen_client.IDTypeMessageBox, fromId))
-		// idgen_client.MakeIDTypeNgen(idgen_client.IDTypePts, fromId))
-		if len(idList) != 2 {
-			err = mtproto.ErrInternalServerError
-			return nil, err
-		}
+		dialogMessageId = d.IDGenClient2.NextId(ctx)
+		outBoxMsgId = d.NextMessageBoxId(ctx, fromId)
 
-		dialogMessageId = idList[0].Id
-		outBoxMsgId = int32(idList[1].Id)
-		// pts = int32(idList[2].Id)
-
-		// if dialogMessageId == 0 || outBoxMsgId == 0 || pts == 0 {
 		if dialogMessageId == 0 || outBoxMsgId == 0 {
-			logx.WithContext(ctx).Errorf("GetNextIdList error: %v", idList)
+			logx.WithContext(ctx).Errorf("sendMessageToOutboxV3 - allocate id failed, dialog_message_id: %d, message_box_id: %d", dialogMessageId, outBoxMsgId)
 			err = mtproto.ErrInternalServerError
 			return nil, err
 		}
@@ -856,7 +830,7 @@ func (d *Dao) EditChatOutboxMessageV2(ctx context.Context, fromId, toId int64, n
 
 func (d *Dao) editOutboxMessageV2(ctx context.Context, fromId int64, peerType int32, peerId int64, newMessage *msg.OutboxMessage, dstMessage *mtproto.MessageBox) (*mtproto.MessageBox, error) {
 	var (
-		pts            = d.IDGenClient2.NextPtsId(ctx, fromId)
+		pts            = d.NextPtsId(ctx, fromId)
 		ptsCount int32 = 1
 		message        = newMessage.Message
 	)

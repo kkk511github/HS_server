@@ -22,7 +22,13 @@ func (c *ChatCore) ChatGetChatListByIdList(in *chat.TLChatGetChatListByIdList) (
 	}
 
 	for _, id := range in.IdList {
-		mChat, _ := c.svcCtx.Dao.GetMutableChat(c.ctx, id)
+		var mChat *mtproto.MutableChat
+		if in.SelfId != 0 {
+			// 带上当前用户，便于只拉取该用户可见的参与者信息；与 chat.getChatBySelfId 行为一致
+			mChat, _ = c.svcCtx.Dao.GetMutableChat(c.ctx, id, in.SelfId)
+		} else {
+			mChat, _ = c.svcCtx.Dao.GetMutableChat(c.ctx, id)
+		}
 		if mChat != nil {
 			rValueList.Datas = append(rValueList.Datas, mChat)
 		}

@@ -97,6 +97,11 @@ func (c *UpdatesCore) UpdatesGetDifference(in *mtproto.TLUpdatesGetDifference) (
 	idHelper.PickByMessages(rDifference.NewMessages...)
 	idHelper.PickByUpdates(rDifference.OtherUpdates...)
 
+	var (
+		wantedChatIds  []int64
+		returnedChatId = make(map[int64]struct{})
+	)
+
 	idHelper.Visit(
 		func(userIdList []int64) {
 			users, _ := c.svcCtx.Dao.UserClient.UserGetMutableUsers(c.ctx,
@@ -106,14 +111,33 @@ func (c *UpdatesCore) UpdatesGetDifference(in *mtproto.TLUpdatesGetDifference) (
 			rDifference.Users = users.GetUserListByIdList(c.MD.UserId, userIdList...)
 		},
 		func(chatIdList []int64) {
+			wantedChatIds = append(wantedChatIds, chatIdList...)
 			chats, _ := c.svcCtx.Dao.ChatClient.ChatGetChatListByIdList(c.ctx,
 				&chatpb.TLChatGetChatListByIdList{
+					SelfId: c.MD.UserId,
 					IdList: chatIdList,
 				})
 			rDifference.Chats = chats.GetChatListByIdList(c.MD.UserId, chatIdList...)
+			for _, chat := range rDifference.Chats {
+				returnedChatId[chat.GetId()] = struct{}{}
+			}
 		},
 		func(channelIdList []int64) {
 		})
+
+	if len(wantedChatIds) > 0 {
+		missingChatIds := make([]int64, 0)
+		for _, chatId := range wantedChatIds {
+			if _, ok := returnedChatId[chatId]; !ok {
+				missingChatIds = append(missingChatIds, chatId)
+			}
+		}
+
+		if len(missingChatIds) > 0 {
+			c.Logger.Errorf("updates.getDifference - missing chats in response, user_id=%d, pts=%d, wanted_chat_ids=%v, missing_chat_ids=%v",
+				c.MD.UserId, in.Pts, wantedChatIds, missingChatIds)
+		}
+	}
 
 	return rDifference, nil
 }

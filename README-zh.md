@@ -201,7 +201,9 @@ docker exec mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -D teamgram -e "SELECT i
 
 ## 客户端连接检查清单
 
-Teamgram 各客户端分叉默认连接 Teamgram 测试服务器。要连接你自己的后端，必须先把客户端内置的 DC 地址改为你的公网 IP 和端口 `10443`，然后重新编译并安装客户端。
+Teamgram 各客户端分叉默认连接 Teamgram 测试服务器。要连接你自己的后端，必须先把客户端内置的 DC 地址改为你的公网 IP 和端口 `443`，然后重新编译并安装客户端。
+
+推荐公网部署时优先使用 `443`，并在 `docker-compose.yaml` 中映射 `443:10443`。移动网络下 `10443/11443` 可能受运营商链路策略影响，导致“端口可达但应用登录失败”。
 
 - Android: `clients/teamgram-android.md`
 - iOS: `clients/teamgram-ios.md`

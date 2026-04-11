@@ -12,6 +12,7 @@ package dao
 import (
 	"context"
 	"fmt"
+	"sync"
 	"github.com/teamgram/marmota/pkg/idempotent"
 	"github.com/teamgram/marmota/pkg/stores/sqlc"
 	inbox_client "github.com/teamgram/teamgram-server/app/messenger/msg/inbox/client"
@@ -36,6 +37,8 @@ type Dao struct {
 	BotSyncClient sync_client.SyncClient
 	dialog_client.DialogClient
 	deduplication.MessageDeDuplicate
+	messageBoxSeqFloor sync.Map
+	ptsSeqFloor        sync.Map
 	*redis.Redis
 }
 

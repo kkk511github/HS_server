@@ -53,6 +53,7 @@ func (c *ChatCore) ChatCreateChat2(in *chat.TLChatCreateChat2) (*mtproto.Mutable
 		About:                  "",
 		PhotoId:                0,
 		DefaultBannedRights:    int64(mtproto.MakeDefaultBannedRights().ToBannedRights()),
+		DisableSocialActions:   false,
 		MigratedToId:           0,
 		MigratedToAccessHash:   0,
 		AvailableReactionsType: 0,
