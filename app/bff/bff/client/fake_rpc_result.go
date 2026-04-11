@@ -14,6 +14,7 @@ import (
 
 	"github.com/teamgram/proto/mtproto"
 	"github.com/teamgram/proto/mtproto/crypto"
+	"github.com/teamgram/proto/mtproto/rpc/metadata"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -71,7 +72,7 @@ func init() {
 	}).To_SecurePasswordKdfAlgo()
 }
 
-func (c *BFFProxyClient) TryReturnFakeRpcResult(ctx context.Context, object mtproto.TLObject) (mtproto.TLObject, error) {
+func (c *BFFProxyClient) TryReturnFakeRpcResult(ctx context.Context, rpcMetaData *metadata.RpcMetadata, object mtproto.TLObject) (mtproto.TLObject, error) {
 	rt := reflect.TypeOf(object)
 	if rt.Kind() == reflect.Ptr {
 		rt = rt.Elem()
@@ -80,35 +81,77 @@ func (c *BFFProxyClient) TryReturnFakeRpcResult(ctx context.Context, object mtpr
 	switch rt.Name() {
 	// langpack
 	case "TLLangpackGetDifference":
+		catalog, err := getLangpackCatalog()
+		if err != nil {
+			return nil, err
+		}
 		in := object.(*mtproto.TLLangpackGetDifference)
-		return mtproto.MakeTLLangPackDifference(&mtproto.LangPackDifference{
-			LangCode:    in.GetLangCode(),
-			FromVersion: in.GetFromVersion(),
-			Version:     1,
-			Strings:     []*mtproto.LangPackString{},
-		}).To_LangPackDifference(), nil
+		values, err := langpackStringsForClient(ctx, rpcMetaData, catalog, in.GetLangPack(), in.GetLangCode())
+		if err != nil {
+			return nil, err
+		}
+		if values == nil {
+			return nil, mtproto.ErrLangCodeNotSupported
+		}
+		return buildLangPackDifference(in.GetLangCode(), in.GetFromVersion(), values), nil
 	case "TLLangpackGetLangPack":
+		catalog, err := getLangpackCatalog()
+		if err != nil {
+			return nil, err
+		}
 		in := object.(*mtproto.TLLangpackGetLangPack)
+		values, err := langpackStringsForClient(ctx, rpcMetaData, catalog, in.GetLangPack(), in.GetLangCode())
+		if err != nil {
+			return nil, err
+		}
+		if values == nil {
+			return nil, mtproto.ErrLangCodeNotSupported
+		}
 		return mtproto.MakeTLLangPackDifference(&mtproto.LangPackDifference{
-			LangCode:    in.GetLangCode(),
+			LangCode:    normalizeLangCode(in.GetLangCode()),
 			FromVersion: 0,
-			Version:     1,
-			Strings:     []*mtproto.LangPackString{},
+			Version:     langpackVersion,
+			Strings:     buildLangPackStringVector(nil, values).Datas,
 		}).To_LangPackDifference(), nil
-	case "TLLangpackGetLanguage":
-		in := object.(*mtproto.TLLangpackGetLanguage)
-		return fakeLangPackLanguage(in.GetLangCode()), nil
 	case "TLLangpackGetLanguages":
+		catalog, err := getLangpackCatalog()
+		if err != nil {
+			return nil, err
+		}
 		return &mtproto.Vector_LangPackLanguage{
 			Datas: []*mtproto.LangPackLanguage{
 				fakeLangPackLanguage("en"),
-				fakeLangPackLanguage("classic-zh-cn"),
+				catalog.language,
 			},
 		}, nil
+	case "TLLangpackGetLanguage":
+		in := object.(*mtproto.TLLangpackGetLanguage)
+		switch normalizeLangCode(in.GetLangCode()) {
+		case langpackCodeZhHans:
+			catalog, err := getLangpackCatalog()
+			if err != nil {
+				return nil, err
+			}
+			return catalog.language, nil
+		case langpackCodeEn:
+			return fakeLangPackLanguage("en"), nil
+		default:
+			return nil, mtproto.ErrLangCodeNotSupported
+		}
 	case "TLLangpackGetStrings":
-		return &mtproto.Vector_LangPackString{
-			Datas: []*mtproto.LangPackString{},
-		}, nil
+		catalog, err := getLangpackCatalog()
+		if err != nil {
+			return nil, err
+		}
+		in := object.(*mtproto.TLLangpackGetStrings)
+		values, err := langpackStringsForClient(ctx, rpcMetaData, catalog, in.GetLangPack(), in.GetLangCode())
+		if err != nil {
+			return nil, err
+		}
+		if values == nil {
+			return nil, mtproto.ErrLangCodeNotSupported
+		}
+		return buildLangPackStringVector(in.GetKeys(), values), nil
 
 	// webpage
 	case "TLMessagesGetWebPage":
@@ -215,10 +258,8 @@ func (c *BFFProxyClient) TryReturnFakeRpcResult(ctx context.Context, object mtpr
 			Sets:   []*mtproto.StickerSetCovered{},
 			Unread: []int64{},
 		}).To_Messages_FeaturedStickers(), nil
-	//case "TLMessagesGetStickerSet":
-	//	// logx.WithContext(ct)
-	//	return nil, mtproto.ErrMethodNotImpl
-	//	// return mtproto.MakeTLMessagesStickerSetNotModified(&mtproto.Messages_StickerSet{}).To_Messages_StickerSet(), nil
+	case "TLMessagesGetStickerSet":
+		return mtproto.MakeTLMessagesStickerSet(&mtproto.Messages_StickerSet{}).To_Messages_StickerSet(), nil
 
 	// 	scheduledmessages
 	case "TLMessagesGetScheduledMessages":
@@ -237,9 +278,29 @@ func (c *BFFProxyClient) TryReturnFakeRpcResult(ctx context.Context, object mtpr
 
 	// folders
 	case "TLMessagesGetDialogFilters":
+		fallthrough
+	case "TLMessagesGetDialogFiltersEFD48C89":
+		fallthrough
+	case "TLMessagesGetDialogFiltersF19ED96D":
 		return &mtproto.Vector_DialogFilter{
 			Datas: []*mtproto.DialogFilter{},
 		}, nil
+
+	// startup feature probes used by newer Android builds.
+	case "TLMessagesGetAttachMenuBots":
+		return mtproto.MakeTLAttachMenuBotsNotModified(&mtproto.AttachMenuBots{}).To_AttachMenuBots(), nil
+	case "TLMessagesGetAvailableEffects":
+		return mtproto.MakeTLMessagesAvailableEffectsNotModified(&mtproto.Messages_AvailableEffects{}).To_Messages_AvailableEffects(), nil
+	case "TLHelpGetPeerColors":
+		fallthrough
+	case "TLHelpGetPeerProfileColors":
+		return mtproto.MakeTLHelpPeerColorsNotModified(&mtproto.Help_PeerColors{}).To_Help_PeerColors(), nil
+	case "TLStoriesGetAllStories":
+		return mtproto.MakeTLStoriesAllStoriesNotModified(&mtproto.Stories_AllStories{}).To_Stories_AllStories(), nil
+	case "TLPaymentsGetSavedStarGifts":
+		return mtproto.MakeTLPaymentsSavedStarGifts(&mtproto.Payments_SavedStarGifts{}).To_Payments_SavedStarGifts(), nil
+	case "TLPaymentsGetStarsStatus":
+		return mtproto.MakeTLPaymentsStarsStatus(&mtproto.Payments_StarsStatus{}).To_Payments_StarsStatus(), nil
 
 	// gifs
 	case "TLMessagesGetSavedGifs":
