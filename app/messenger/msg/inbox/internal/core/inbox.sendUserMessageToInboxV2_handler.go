@@ -49,7 +49,7 @@ func (c *InboxCore) InboxSendUserMessageToInboxV2(in *inbox.TLInboxSendUserMessa
 		for _, inBox := range in.GetBoxList() {
 			if isUseV3 {
 				// V3: pts allocated here in inbox consumer
-				inBox.Pts = c.svcCtx.Dao.IDGenClient2.NextPtsId(c.ctx, in.FromId)
+				inBox.Pts = c.svcCtx.Dao.NextPtsId(c.ctx, in.FromId)
 				inBox.PtsCount = 1
 
 				// V3: write outbox + user_pts_updates together (pts allocated above)

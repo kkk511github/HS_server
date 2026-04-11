@@ -57,7 +57,7 @@ func (d *Dao) makeMessageInBox(fromId int64, peer *mtproto.PeerUtil, toUserId in
 
 func (d *Dao) sendMessageToInbox(ctx context.Context, fromId int64, peer *mtproto.PeerUtil, toUserId int64, dialogMessageId, clientRandomId int64, message2 *mtproto.Message) (*mtproto.MessageBox, error) {
 	var (
-		inBoxMsgId = d.IDGenClient2.NextMessageBoxId(ctx, toUserId)
+		inBoxMsgId   = d.NextMessageBoxId(ctx, toUserId)
 		dialogId      = mtproto.MakeDialogId(fromId, peer.PeerType, peer.PeerId)
 		messagePeerId = peer.PeerId
 		date          = time.Now().Unix()
@@ -259,7 +259,7 @@ func (d *Dao) sendMessageToInbox(ctx context.Context, fromId int64, peer *mtprot
 		},
 		dialog.GetDialogCacheKey(dialogDO.UserId, dialogDO.PeerDialogId))
 
-	inBox.Pts = d.IDGenClient2.NextPtsId(ctx, toUserId)
+	inBox.Pts = d.NextPtsId(ctx, toUserId)
 	inBox.PtsCount = 1
 
 	return inBox, nil
@@ -502,7 +502,7 @@ func (d *Dao) EditUserInboxMessage(ctx context.Context, fromId, peerId int64, me
 		DialogId2:         0,
 		DialogMessageId:   0,
 		RandomId:          0,
-		Pts:               d.IDGenClient2.NextPtsId(ctx, peerId),
+		Pts:               d.NextPtsId(ctx, peerId),
 		PtsCount:          1,
 		MessageFilterType: 0,
 		Message:           message,
@@ -547,7 +547,7 @@ func (d *Dao) EditChatInboxMessage(ctx context.Context, fromId int64, peerChatId
 		DialogId2:         0,
 		DialogMessageId:   0,
 		RandomId:          0,
-		Pts:               d.IDGenClient2.NextPtsId(ctx, toId),
+		Pts:               d.NextPtsId(ctx, toId),
 		PtsCount:          1,
 		MessageFilterType: 0,
 		Message:           message,

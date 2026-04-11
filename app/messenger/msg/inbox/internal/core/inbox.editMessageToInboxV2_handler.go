@@ -94,7 +94,7 @@ func (c *InboxCore) InboxEditMessageToInboxV2(in *inbox.TLInboxEditMessageToInbo
 			ptsCount   int32 = 1
 		)
 
-		pts = c.svcCtx.Dao.IDGenClient2.NextPtsId(c.ctx, in.UserId)
+		pts = c.svcCtx.Dao.NextPtsId(c.ctx, in.UserId)
 		if pts == 0 {
 			c.Logger.Errorf("NextPtsId error: %v", in.UserId)
 			err := mtproto.ErrInternalServerError

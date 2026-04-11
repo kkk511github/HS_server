@@ -46,7 +46,7 @@ func (c *InboxCore) InboxReadMediaUnreadToInboxV2(in *inbox.TLInboxReadMediaUnre
 		return nil, err
 	}
 
-	pts := c.svcCtx.Dao.IDGenClient2.NextPtsId(c.ctx, in.UserId)
+	pts := c.svcCtx.Dao.NextPtsId(c.ctx, in.UserId)
 	if pts == 0 {
 		c.Logger.Errorf("inbox.readMediaUnreadToInboxV2 - error: nextPtsId(%d) is 0", in.UserId)
 		return nil, mtproto.ErrInternalServerError

@@ -84,7 +84,7 @@ func (c *InboxCore) InboxReadInboxHistory(in *inbox.TLInboxReadInboxHistory) (*m
 		ptsCount = in.PtsCount
 	)
 	if isUseV3 {
-		pts = c.svcCtx.Dao.IDGenClient2.NextPtsId(c.ctx, in.UserId)
+		pts = c.svcCtx.Dao.NextPtsId(c.ctx, in.UserId)
 		ptsCount = 1
 
 		rpcResult := &mtproto.TLRpcResult{

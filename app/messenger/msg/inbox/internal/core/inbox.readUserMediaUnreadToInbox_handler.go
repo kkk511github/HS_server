@@ -41,7 +41,7 @@ func (c *InboxCore) InboxReadUserMediaUnreadToInbox(in *inbox.TLInboxReadUserMed
 			_, _ = c.svcCtx.Dao.MessagesDAO.UpdateMediaUnread(c.ctx, v.UserId, v.UserMessageBoxId)
 
 			// TODO: batch handle
-			pts := c.svcCtx.Dao.IDGenClient2.NextPtsId(c.ctx, v.UserId)
+			pts := c.svcCtx.Dao.NextPtsId(c.ctx, v.UserId)
 			updateReadMessagesContents := mtproto.MakeTLUpdateReadMessagesContents(&mtproto.Update{
 				Messages:  []int32{v.UserMessageBoxId},
 				Pts_INT32: pts,

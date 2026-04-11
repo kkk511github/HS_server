@@ -80,7 +80,7 @@ func (c *InboxCore) InboxUpdatePinnedMessage(in *inbox.TLInboxUpdatePinnedMessag
 				Pinned:    !in.GetUnpin(),
 				Peer_PEER: mtproto.MakePeerUser(in.UserId),
 				Messages:  []int32{v.UserMessageBoxId},
-				Pts_INT32: c.svcCtx.Dao.IDGenClient2.NextPtsId(c.ctx, v.UserId),
+				Pts_INT32: c.svcCtx.Dao.NextPtsId(c.ctx, v.UserId),
 				PtsCount:  1,
 			}).To_Update()
 			c.persistPtsUpdate(c.ctx, v.UserId, updatePinnedMessages)
@@ -112,7 +112,7 @@ func (c *InboxCore) InboxUpdatePinnedMessage(in *inbox.TLInboxUpdatePinnedMessag
 				Pinned:    !in.GetUnpin(),
 				Peer_PEER: mtproto.MakePeerChat(peer.PeerId),
 				Messages:  []int32{v.UserMessageBoxId},
-				Pts_INT32: c.svcCtx.Dao.IDGenClient2.NextPtsId(c.ctx, v.UserId),
+				Pts_INT32: c.svcCtx.Dao.NextPtsId(c.ctx, v.UserId),
 				PtsCount:  1,
 			}).To_Update()
 			c.persistPtsUpdate(c.ctx, v.UserId, updatePinnedMessages)

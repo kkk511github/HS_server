@@ -90,7 +90,7 @@ func (c *MsgCore) msgReadHistoryV2(ctx context.Context, in *msg.TLMsgReadHistory
 		return nil, mtproto.ErrMsgIdInvalid
 	}
 
-	pts = c.svcCtx.Dao.IDGenClient2.NextPtsId(ctx, in.UserId)
+	pts = c.svcCtx.Dao.NextPtsId(ctx, in.UserId)
 	ptsCount = 1
 
 	// Write user_pts_updates before RPC return to guarantee getDifference completeness
