@@ -590,8 +590,24 @@ func (d *Dao) SendMessageToOutboxV1NoPts(ctx context.Context, fromId int64, peer
 
 func (d *Dao) sendMessageToOutboxV1(ctx context.Context, fromId int64, peer *mtproto.PeerUtil, outMsgBox *mtproto.MessageBox, writePts bool) error {
 	message := outMsgBox.Message
-	mData, _ := jsonx.Marshal(outMsgBox.GetMessage())
 	outBoxMsgId := outMsgBox.MessageId
+
+	outBoxMsgId = d.ensureFreshMessageBoxId(ctx, fromId, outBoxMsgId)
+	if outBoxMsgId == 0 {
+		return mtproto.ErrInternalServerError
+	}
+	outMsgBox.MessageId = outBoxMsgId
+	if message != nil {
+		message.Id = outBoxMsgId
+	}
+	if writePts {
+		outMsgBox.Pts = d.ensureFreshPtsId(ctx, fromId, outMsgBox.Pts)
+		if outMsgBox.Pts == 0 {
+			return mtproto.ErrInternalServerError
+		}
+		outMsgBox.PtsCount = 1
+	}
+	mData, _ := jsonx.Marshal(outMsgBox.GetMessage())
 
 	var (
 		savedPeerUtil *mtproto.PeerUtil
@@ -741,6 +757,21 @@ func (d *Dao) sendMessageToOutboxV2(ctx context.Context, fromId int64, peer *mtp
 		HasReaction:       false,
 	}).To_MessageBox()
 
+	outBoxMsgId = d.ensureFreshMessageBoxId(ctx, fromId, outBoxMsgId)
+	if outBoxMsgId == 0 {
+		return nil, mtproto.ErrInternalServerError
+	}
+	outMsgBox.MessageId = outBoxMsgId
+	outMsgBox.Message.Id = outBoxMsgId
+	if out {
+		pts = d.ensureFreshPtsId(ctx, fromId, pts)
+		if pts == 0 {
+			return nil, mtproto.ErrInternalServerError
+		}
+		outMsgBox.Pts = pts
+		outMsgBox.PtsCount = 1
+	}
+
 	// Write sender's user_pts_updates before RPC return to guarantee
 	// getDifference completeness for the sender.
 	if out && pts > 0 {
@@ -816,6 +847,21 @@ func (d *Dao) sendMessageToOutboxV3(ctx context.Context, fromId int64, peer *mtp
 		TtlPeriod:         0,
 		HasReaction:       false,
 	}).To_MessageBox()
+
+	outBoxMsgId = d.ensureFreshMessageBoxId(ctx, fromId, outBoxMsgId)
+	if outBoxMsgId == 0 {
+		return nil, mtproto.ErrInternalServerError
+	}
+	outMsgBox.MessageId = outBoxMsgId
+	outMsgBox.Message.Id = outBoxMsgId
+	if out {
+		pts = d.ensureFreshPtsId(ctx, fromId, pts)
+		if pts == 0 {
+			return nil, mtproto.ErrInternalServerError
+		}
+		outMsgBox.Pts = pts
+		outMsgBox.PtsCount = 1
+	}
 
 	return outMsgBox, nil
 }

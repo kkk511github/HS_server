@@ -163,19 +163,51 @@ docker exec etcd etcdctl --endpoints=http://127.0.0.1:2379 get --prefix messenge
 docker exec etcd etcdctl --endpoints=http://127.0.0.1:2379 get --prefix interface.session
 ```
 
+#### iOS 点击 `Start Messaging` 卡住 / 设置里没有中文：`langpack.*` 未接通或返回空
+
+现象：
+
+- iOS（尤其模拟器）在欢迎页点击 **Start Messaging** 后一直停在该页，切到英语后反而能继续进入手机号登录页。
+- 设置 -> Language 里看不到中文，或只能看到英语。
+
+原因：
+
+- iOS 客户端会通过 `langpack.getLanguages` / `langpack.getLanguage` / `langpack.getLangPack` 拉取远程语言列表与语言包。
+- 若服务端未接通 `langpack.*`，或返回空列表/空字符串表，客户端在非英语语言下容易卡在欢迎页本地化切换流程；语言设置页也不会出现中文选项。
+- 旧配置中 `teamgramd/etc*/session.yaml` 默认将 `"/mtproto.RPCLangpack"` 注释掉，且 `app/bff/bff/client/fake_rpc_result.go` 会对 `langpack.getLanguages` 返回空列表。
+
+修复：
+
+```bash
+# 1) 使用包含 langpack 最小兜底修复的最新代码/镜像
+#    至少保证 getLanguages/getLanguage 不再返回空，中文项可见
+
+# 2) 重新构建并重启应用容器
+docker compose build teamgram
+docker compose up -d --force-recreate teamgram
+
+# 3) 观察应用容器日志，确认未出现 langpack 相关 RPC 错误
+docker logs --tail 200 hsgram_server-teamgram-1 | rg "langpack|getLanguage|getLanguages|getLangPack"
+```
+
+说明：
+
+- 当前仓库的最小修复只会让客户端先拿到 **English** 和 **简体中文** 的语言元信息，解决“设置里没有中文 / 欢迎页切语言卡住”的问题。
+- 若需要 **完整中文翻译内容**，还需继续实现真实的 `langpack.getLangPack` / `langpack.getDifference` 数据源，而不仅是返回语言列表。
+
 #### 验证码不弹/收不到：`777000` 系统账号缺失（登录码消息投递失败）
 
 现象：登录时客户端不再弹出验证码；服务端日志可见已生成 `Login code: xxxxx`，但发送失败。
 
 原因：社区版默认把登录验证码作为一条“系统消息”由 `777000`（类似 Telegram 的官方服务号）发送给用户；若数据库里缺少 `users.id=777000`（或该用户被标记 `deleted=1` / `state!=0`），会导致投递失败，客户端收不到验证码消息。
 
-修复：在 MySQL `teamgram.users` 表中补齐并启用该系统账号（示例字段按默认表结构最小化填充）：
+修复：在 MySQL `teamgram.users` 表中补齐并启用该系统账号，并将其显示名统一为 `HSgram Service`（保留 `username=teamgram` 以兼容旧逻辑）：
 
 ```bash
 docker exec mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -D teamgram -e "
 INSERT INTO users (id,user_type,access_hash,secret_key_id,first_name,last_name,username,phone,country_code,verified,support,scam,fake,premium,premium_expire_date,about,state,is_bot,account_days_ttl,photo_id,restricted,restriction_reason,archive_and_mute_new_noncontact_peers,emoji_status_document_id,emoji_status_until,stories_max_id,color,color_background_emoji_id,profile_color,profile_color_background_emoji_id,birthday,personal_channel_id,authorization_ttl_days,saved_music_id,main_tab,deleted,delete_reason)
-VALUES (777000,2,922337203685477000,0,'Teamgram','Service','teamgram','777000','CN',1,1,0,0,0,0,'',0,0,180,0,0,'',0,0,0,0,0,0,0,0,'',0,180,0,0,0,'')
-ON DUPLICATE KEY UPDATE deleted=0,support=1,state=0,verified=1;
+VALUES (777000,2,922337203685477000,0,'HSgram','Service','teamgram','777000','CN',1,1,0,0,0,0,'',0,0,180,0,0,'',0,0,0,0,0,0,0,0,'',0,180,0,0,0,'')
+ON DUPLICATE KEY UPDATE first_name='HSgram',last_name='Service',deleted=0,support=1,state=0,verified=1;
 "
 ```
 

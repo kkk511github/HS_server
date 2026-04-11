@@ -70,6 +70,60 @@ func (d *Dao) NextPtsId(ctx context.Context, userId int64) int32 {
 	return d.IDGenClient2.NextPtsId(ctx, userId)
 }
 
+func (d *Dao) ensureFreshMessageBoxId(ctx context.Context, userId int64, current int32) int32 {
+	if current == 0 {
+		return d.NextMessageBoxId(ctx, userId)
+	}
+
+	maxID, ok := d.loadMessageBoxSeqFloor(userId)
+	if !ok {
+		var err error
+		maxID, err = d.getLatestMessageBoxId(ctx, userId)
+		if err != nil {
+			logx.WithContext(ctx).Errorf("ensureFreshMessageBoxId - query latest message box id failed, user_id: %d, current: %d, err: %v", userId, current, err)
+			return current
+		}
+	}
+
+	if current > maxID {
+		d.storeMessageBoxSeqFloor(userId, current)
+		return current
+	}
+
+	logx.WithContext(ctx).Errorf("ensureFreshMessageBoxId - repaired stale message box id, user_id: %d, incoming: %d, max_db: %d", userId, current, maxID)
+	d.storeMessageBoxSeqFloor(userId, maxID)
+	d.IDGenClient2.SetCurrentMessageBoxId(ctx, userId, maxID)
+
+	return d.NextMessageBoxId(ctx, userId)
+}
+
+func (d *Dao) ensureFreshPtsId(ctx context.Context, userId int64, current int32) int32 {
+	if current == 0 {
+		return d.NextPtsId(ctx, userId)
+	}
+
+	maxPts, ok := d.loadPtsSeqFloor(userId)
+	if !ok {
+		var err error
+		maxPts, err = d.getLatestPtsId(ctx, userId)
+		if err != nil {
+			logx.WithContext(ctx).Errorf("ensureFreshPtsId - query latest pts failed, user_id: %d, current: %d, err: %v", userId, current, err)
+			return current
+		}
+	}
+
+	if current > maxPts {
+		d.storePtsSeqFloor(userId, current)
+		return current
+	}
+
+	logx.WithContext(ctx).Errorf("ensureFreshPtsId - repaired stale pts, user_id: %d, incoming: %d, max_db: %d", userId, current, maxPts)
+	d.storePtsSeqFloor(userId, maxPts)
+	d.IDGenClient2.SetCurrentPtsId(ctx, userId, maxPts)
+
+	return d.NextPtsId(ctx, userId)
+}
+
 func (d *Dao) getLatestMessageBoxId(ctx context.Context, userId int64) (int32, error) {
 	var row dataobject.MessagesDO
 

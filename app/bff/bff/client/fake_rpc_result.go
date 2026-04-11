@@ -9,6 +9,7 @@ package bff_proxy_client
 import (
 	"context"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/teamgram/proto/mtproto"
@@ -83,7 +84,7 @@ func (c *BFFProxyClient) TryReturnFakeRpcResult(ctx context.Context, object mtpr
 		return mtproto.MakeTLLangPackDifference(&mtproto.LangPackDifference{
 			LangCode:    in.GetLangCode(),
 			FromVersion: in.GetFromVersion(),
-			Version:     in.GetFromVersion(),
+			Version:     1,
 			Strings:     []*mtproto.LangPackString{},
 		}).To_LangPackDifference(), nil
 	case "TLLangpackGetLangPack":
@@ -91,12 +92,18 @@ func (c *BFFProxyClient) TryReturnFakeRpcResult(ctx context.Context, object mtpr
 		return mtproto.MakeTLLangPackDifference(&mtproto.LangPackDifference{
 			LangCode:    in.GetLangCode(),
 			FromVersion: 0,
-			Version:     0,
+			Version:     1,
 			Strings:     []*mtproto.LangPackString{},
 		}).To_LangPackDifference(), nil
+	case "TLLangpackGetLanguage":
+		in := object.(*mtproto.TLLangpackGetLanguage)
+		return fakeLangPackLanguage(in.GetLangCode()), nil
 	case "TLLangpackGetLanguages":
 		return &mtproto.Vector_LangPackLanguage{
-			Datas: []*mtproto.LangPackLanguage{},
+			Datas: []*mtproto.LangPackLanguage{
+				fakeLangPackLanguage("en"),
+				fakeLangPackLanguage("classic-zh-cn"),
+			},
 		}, nil
 	case "TLLangpackGetStrings":
 		return &mtproto.Vector_LangPackString{
@@ -306,4 +313,46 @@ func (c *BFFProxyClient) TryReturnFakeRpcResult(ctx context.Context, object mtpr
 
 	logx.WithContext(ctx).Errorf("%s blocked, License key from https://teamgram.net required to unlock enterprise features.", rt.Name())
 	return nil, mtproto.ErrEnterpriseIsBlocked
+}
+
+func fakeLangPackLanguage(langCode string) *mtproto.LangPackLanguage {
+	code := strings.ToLower(langCode)
+	switch code {
+	case "", "en":
+		return &mtproto.LangPackLanguage{
+			Flags:           1,
+			Name:            "English",
+			NativeName:      "English",
+			LangCode:        "en",
+			BaseLangCode:    "",
+			PluralCode:      "en",
+			StringsCount:    1,
+			TranslatedCount: 1,
+			TranslationsUrl: "",
+		}
+	case "classic-zh-cn", "zh-cn", "zh-hans", "zh":
+		return &mtproto.LangPackLanguage{
+			Flags:           1,
+			Name:            "Chinese (Simplified)",
+			NativeName:      "简体中文",
+			LangCode:        "classic-zh-cn",
+			BaseLangCode:    "en",
+			PluralCode:      "zh",
+			StringsCount:    1,
+			TranslatedCount: 1,
+			TranslationsUrl: "",
+		}
+	default:
+		return &mtproto.LangPackLanguage{
+			Flags:           0,
+			Name:            langCode,
+			NativeName:      langCode,
+			LangCode:        langCode,
+			BaseLangCode:    "en",
+			PluralCode:      "en",
+			StringsCount:    0,
+			TranslatedCount: 0,
+			TranslationsUrl: "",
+		}
+	}
 }

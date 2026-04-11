@@ -26,8 +26,31 @@ func (c *DialogCore) DialogInsertOrUpdateDialog(in *dialog.TLDialogInsertOrUpdat
 	)
 
 	if in.GetTopMessage() != nil {
-		cMap["top_message"] = in.GetTopMessage().GetValue()
-		cMap["date2"] = in.GetDate2().GetValue()
+		incomingTopMessage := in.GetTopMessage().GetValue()
+		incomingDate := int64(0)
+		if in.GetDate2() != nil {
+			incomingDate = in.GetDate2().GetValue()
+		}
+
+		allowTopMessageUpdate := true
+		currentDialog, err := c.svcCtx.Dao.DialogsDAO.SelectDialog(c.ctx, in.UserId, in.PeerType, in.PeerId)
+		if err != nil {
+			c.Logger.Errorf("dialog.insertOrUpdateDialog - load current dialog error: %v", err)
+		} else if currentDialog != nil {
+			if incomingTopMessage < currentDialog.TopMessage {
+				allowTopMessageUpdate = false
+				c.Logger.Errorf("dialog.insertOrUpdateDialog - ignore stale top_message, user_id=%d peer_type=%d peer_id=%d incoming=%d current=%d", in.UserId, in.PeerType, in.PeerId, incomingTopMessage, currentDialog.TopMessage)
+			} else if incomingTopMessage == currentDialog.TopMessage && incomingDate > currentDialog.Date2 {
+				cMap["date2"] = incomingDate
+			}
+		}
+
+		if allowTopMessageUpdate {
+			cMap["top_message"] = incomingTopMessage
+			if in.GetDate2() != nil {
+				cMap["date2"] = incomingDate
+			}
+		}
 	}
 	if in.GetReadOutboxMaxId() != nil {
 		cMap["read_outbox_max_id"] = in.GetReadOutboxMaxId().GetValue()
